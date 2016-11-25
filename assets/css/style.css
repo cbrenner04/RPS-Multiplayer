@@ -1,0 +1,12 @@
+.panel {
+  min-height: 300px;
+}
+
+#remove-message:hover {
+  cursor: pointer;
+}
+
+.well {
+  min-height: 90px;
+  overflow: scroll;
+}
