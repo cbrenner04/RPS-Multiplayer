@@ -103,7 +103,21 @@ function setUpGame() {
             }
             // check that current player is not already attached to latest game
         } else if (playerOne !== currentPlayer && playerTwo !== currentPlayer) {
-            createNewGame();
+            // create new game
+            // the current player is player 1
+            database.ref().push({
+                timestamp: firebase.database.ServerValue.TIMESTAMP,
+                player1: currentPlayer,
+                playerOneWins: 0
+            }).push({
+                // initialize first round
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            // show waiting on player alert
+            $('#waiting-on-player').show();
+            // hide player 2 card
+            $('#other-player-panel').hide();
+            setUpGame();
         } else if (playerOne === currentPlayer) {
             // set player2 as the other player
             $('#other-player').text(playerTwo);
@@ -139,21 +153,8 @@ function displayWins() {
 }
 
 function createNewGame() {
-    // create new game
-    // the current player is player 1
-    database.ref().push({
-        timestamp: firebase.database.ServerValue.TIMESTAMP,
-        player1: currentPlayer,
-        playerOneWins: 0
-    }).push({
-        // initialize first round
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    });
-    // show waiting on player alert
-    $('#waiting-on-player').show();
-    // hide player 2 card
-    $('#other-player-panel').hide();
-    setUpGame();
+    localStorage.removeItem('username');
+    location.reload();
 }
 
 function playGame() {
@@ -268,8 +269,6 @@ function playGame() {
     });
 }
 /*
-    clear message log each new session
-        -- variable in sessionStorage? --
     listen for player message
     display user name and message
  */
