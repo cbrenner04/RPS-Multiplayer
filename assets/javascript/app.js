@@ -58,6 +58,7 @@ function setUpGameBoard() {
     $('#gameplay').show();
 }
 
+// global variables for use in multiple functions
 var gameKey;
 var playerOne;
 var playerTwo;
@@ -71,13 +72,21 @@ function setUpGame() {
         playerOne = snapshot.val()[gameKey].player1;
         playerTwo = snapshot.val()[gameKey].player2;
 
+        // if current player is player one
         if (currentPlayer === playerOne) {
+            // set wins for current player
             currentPlayerWins = snapshot.val()[gameKey].playerOneWins;
+            // set wins for other player
             otherPlayerWins = snapshot.val()[gameKey].playerTwoWins;
+            // display stats
             displayWins();
+            // if current player is player two
         } else if (currentPlayer === playerTwo) {
+            // set wins for current player
             currentPlayerWins = snapshot.val()[gameKey].playerTwoWins;
+            // set wins for other player
             otherPlayerWins = snapshot.val()[gameKey].playerOneWins;
+            // display stats
             displayWins();
         }
 
@@ -92,7 +101,7 @@ function setUpGame() {
                     playerTwoWins: 0
                 });
             }
-        // check that current player is not already attached to latest game
+            // check that current player is not already attached to latest game
         } else if (playerOne !== currentPlayer && playerTwo !== currentPlayer) {
             createNewGame();
         } else if (playerOne === currentPlayer) {
@@ -117,10 +126,15 @@ function setUpGame() {
     });
 }
 
+// display wins and losses
 function displayWins() {
+    // display current players wins or 0 if undefined
     $('#current-wins').text(currentPlayerWins || 0);
+    // display current players losses or 0 if undefined (which are the other players wins)
     $('#current-losses').text(otherPlayerWins || 0);
+    // display other players wins
     $('#other-wins').text(otherPlayerWins);
+    // display other players losses (which are the current players wins)
     $('#other-losses').text(currentPlayerWins);
 }
 
@@ -143,6 +157,7 @@ function createNewGame() {
 }
 
 function playGame() {
+    // listen for request for new
     $('#new-game').on('click', function() {
         createNewGame();
     });
@@ -151,27 +166,35 @@ function playGame() {
     var playerOneChoice;
     var playerTwoChoice;
 
+    // get the most recent "round" of the current "game"
     database.ref().child(gameKey).orderByChild('timestamp').limitToLast(1).on('value', function(snapshot) {
         roundKey = Object.keys(snapshot.val()).toString();
         playerOneChoice = snapshot.val()[roundKey].player1;
         playerTwoChoice = snapshot.val()[roundKey].player2;
 
+        // if both players have made a choice on current round
         if (playerOneChoice !== undefined && playerTwoChoice !== undefined) {
+            // show players choices
             if (playerOne === currentPlayer) {
                 $('#other-choice').text('They played ' + playerTwoChoice);
             } else if (playerTwo === currentPlayer) {
                 $('#other-choice').text('They played ' + playerOneChoice);
             }
 
+            // if both players choices are the same
             if (playerOneChoice === playerTwoChoice) {
                 $('#current-result').text('You tied');
                 $('#other-result').text('They tied');
+                // if player one wins
             } else if ((playerOneChoice === 'Rock' && playerTwoChoice === 'Scissors') ||
-                      (playerOneChoice === 'Scissors' && playerTwoChoice === 'Paper') ||
-                      (playerOneChoice === 'Paper' && playerTwoChoice === 'Rock')) {
+                (playerOneChoice === 'Scissors' && playerTwoChoice === 'Paper') ||
+                (playerOneChoice === 'Paper' && playerTwoChoice === 'Rock')) {
+
+                // if current player is player one (the winner)
                 if (currentPlayer === playerOne) {
                     $('#current-result').text('You win!');
                     $('#other-result').text('They lose!');
+                    // if current player is player two (the loser)
                 } else {
                     $('#current-result').text('You lose!');
                     $('#other-result').text('They win!');
@@ -179,10 +202,13 @@ function playGame() {
                 // database.ref().child(gameKey).update({
                 //     playerOneWins: currentPlayerWins + 1
                 // });
+                // if player two wins
             } else {
+                // if current player is player two (the winner)
                 if (currentPlayer === playerTwo) {
                     $('#current-result').text('You win!');
                     $('#other-result').text('They lose!');
+                    // if current player is player one (the loser)
                 } else {
                     $('#current-result').text('You lose!');
                     $('#other-result').text('They win!');
@@ -193,37 +219,49 @@ function playGame() {
             }
         }
 
+        // listen for a user to make a choice
         $('.choice').on('click', function() {
+            // set the choice to choice
             var choice = $(this).text();
+            // display what was chosen
             $('#current-choice').text('You chose ' + choice);
+            // if the current player is player one and they have not yet chosen
             if (playerOne === currentPlayer && playerOneChoice === undefined) {
+                // set the choice for player one in this round
                 database.ref().child(gameKey).child(roundKey).update({
                     player1: choice
                 });
+                // if the current player is player two and they have not yet chosen
             } else if (playerTwo === currentPlayer && playerTwoChoice === undefined) {
+                // set the choice for player two in this round
                 database.ref().child(gameKey).child(roundKey).update({
                     player2: choice
                 });
             }
-
+            // don't refresh page
             return false;
         });
 
+        // current player is player  one
         if (playerOne === currentPlayer) {
+            // if player two has not yet chosen
             if (playerTwoChoice === undefined) {
+                // display waiting message
                 $('#other-choice').text('Waiting on other player to choose');
             }
-
+            // if current player is player two
         } else if (playerTwo === currentPlayer) {
+            // if player one has not yet chosen
             if (playerOneChoice === undefined) {
+                // display waiting message
                 $('#other-choice').text('Waiting on other player to choose');
             }
         }
     });
 }
-    /*
-        clear message log each new session
-            -- variable in sessionStorage? --
-        listen for player message
-        display user name and message
-     */
+/*
+    clear message log each new session
+        -- variable in sessionStorage? --
+    listen for player message
+    display user name and message
+ */
