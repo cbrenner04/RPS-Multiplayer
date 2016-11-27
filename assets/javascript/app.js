@@ -202,6 +202,10 @@ function playGame() {
                 // database.ref().child(gameKey).update({
                 //     playerOneWins: currentPlayerWins + 1
                 // });
+                // database.ref().child(gameKey).push({
+                //     timestamp: firebase.database.ServerValue.TIMESTAMP
+                // });
+                // return playGame();
                 // if player two wins
             } else {
                 // if current player is player two (the winner)
@@ -216,6 +220,10 @@ function playGame() {
                 // database.ref().child(gameKey).update({
                 //     playerTwoWins: currentPlayerWins + 1
                 // });
+                // database.ref().child(gameKey).push({
+                //     timestamp: firebase.database.ServerValue.TIMESTAMP
+                // });
+                // return playGame();
             }
         }
 
