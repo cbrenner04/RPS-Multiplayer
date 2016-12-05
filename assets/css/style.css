@@ -6,7 +6,7 @@
   cursor: pointer;
 }
 
-.well {
-  min-height: 90px;
-  overflow: scroll;
+#messages {
+  height: 90px;
+  overflow-y: scroll;
 }

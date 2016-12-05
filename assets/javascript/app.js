@@ -112,7 +112,8 @@ function setUpGame() {
             database.ref().push({
                 timestamp: firebase.database.ServerValue.TIMESTAMP,
                 player1: game.currentPlayer,
-                playerOneWins: 0
+                playerOneWins: 0,
+                messaging: ''
             }).push({
                 // initialize first round
                 timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -134,6 +135,8 @@ function setUpGame() {
             displayWins();
             // play the game
             playGame();
+            // allow messaging
+            messaging();
         }
     });
 }
@@ -261,16 +264,50 @@ function playGame() {
     });
 }
 
+// display who won to the user, if the user won
 function youWin() {
     $('#current-result').text('You win!');
     $('#other-result').text('They lose!');
 }
 
+// display who won to the user, if the user lost
 function theyWin() {
     $('#current-result').text('You lose!');
     $('#other-result').text('They win!');
 }
-/*
-    listen for player message
-    display user name and message
- */
+
+// controls messaging functionality
+function messaging() {
+    // on click of the messaging submit button
+    $('#send-message').on('click', function() {
+        // get the message input
+        var message = $('#message').val().trim();
+        // if the message input is not empty
+        if (message !== '') {
+            // push the message to firebase
+            database.ref().child(game.gameKey).child('messaging').push({
+                message: message,
+                user: game.currentPlayer,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+            // clear input
+            $('#message').val('');
+        }
+        // do not refresh page
+        return false;
+    });
+
+    // listen for value in messaging portion of the game object on firebase -- limit to the last one
+    database.ref().child(game.gameKey).child('messaging').orderByChild('timestamp').limitToLast(1).on('value', function(snapshot) {
+        // get the key of this message
+        var messageKey = Object.keys(snapshot.val()).toString();
+        // get the user who wrote the message
+        var user = snapshot.val()[messageKey].user;
+        // get the message
+        var message = snapshot.val()[messageKey].message;
+        // get the timestamp of the message
+        var timestamp = moment(snapshot.val()[messageKey].timestamp).format('M/D/YY h:m:s a');
+        // show message to the user
+        $('#messages').prepend('<p>' + timestamp + ' - ' + user + ': ' + message + '</p>');
+    });
+}
