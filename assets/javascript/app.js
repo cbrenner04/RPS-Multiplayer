@@ -164,6 +164,7 @@ function playGame() {
     // set directions
     $('#current-choice').text('Please make a choice');
 
+    // round object
     var round = {
         roundKey: '',
         playerOneChoice: '',
@@ -196,12 +197,10 @@ function playGame() {
 
                 // if current player is player one (the winner)
                 if (game.currentPlayer === game.playerOne) {
-                    $('#current-result').text('You win!');
-                    $('#other-result').text('They lose!');
+                    youWin();
                     // if current player is player two (the loser)
                 } else {
-                    $('#current-result').text('You lose!');
-                    $('#other-result').text('They win!');
+                    theyWin();
                 }
                 // database.ref().child(game.gameKey).update({
                 //     playerOneWins: game.currentPlayerWins + 1
@@ -214,12 +213,10 @@ function playGame() {
             } else {
                 // if current player is player two (the winner)
                 if (game.currentPlayer === game.playerTwo) {
-                    $('#current-result').text('You win!');
-                    $('#other-result').text('They lose!');
+                    youWin();
                     // if current player is player one (the loser)
                 } else {
-                    $('#current-result').text('You lose!');
-                    $('#other-result').text('They win!');
+                    theyWin();
                 }
                 // database.ref().child(game.gameKey).update({
                 //     playerTwoWins: game.currentPlayerWins + 1
@@ -254,22 +251,24 @@ function playGame() {
             return false;
         });
 
-        // current player is player  one
-        if (game.playerOne === game.currentPlayer) {
-            // if player two has not yet chosen
-            if (round.playerTwoChoice === undefined) {
-                // display waiting message
-                $('#other-choice').text('Waiting on other player to choose');
-            }
-            // if current player is player two
-        } else if (game.playerTwo === game.currentPlayer) {
-            // if player one has not yet chosen
-            if (round.playerOneChoice === undefined) {
-                // display waiting message
-                $('#other-choice').text('Waiting on other player to choose');
-            }
+        // if current player is player one and if player two has not yet chosen
+        // or if current player is player two and if player one has not yet chosen
+        if ((game.playerOne === game.currentPlayer && round.playerTwoChoice === undefined) ||
+           (game.playerTwo === game.currentPlayer && round.playerOneChoice === undefined)) {
+            // display waiting message
+            $('#other-choice').text('Waiting on other player to choose');
         }
     });
+}
+
+function youWin() {
+    $('#current-result').text('You win!');
+    $('#other-result').text('They lose!');
+}
+
+function theyWin() {
+    $('#current-result').text('You lose!');
+    $('#other-result').text('They win!');
 }
 /*
     listen for player message
