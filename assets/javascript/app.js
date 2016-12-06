@@ -298,7 +298,7 @@ function messaging() {
     });
 
     // listen for value in messaging portion of the game object on firebase -- limit to the last one
-    database.ref().child(game.gameKey).child('messaging').orderByChild('timestamp').limitToLast(1).on('value', function(snapshot) {
+    database.ref().child(game.gameKey).child('messaging').orderByChild('timestamp').limitToLast(1).once('value', function(snapshot) {
         // get the key of this message
         var messageKey = Object.keys(snapshot.val()).toString();
         // get the user who wrote the message
@@ -306,7 +306,7 @@ function messaging() {
         // get the message
         var message = snapshot.val()[messageKey].message;
         // get the timestamp of the message
-        var timestamp = moment(snapshot.val()[messageKey].timestamp).format('M/D/YY h:m:s a');
+        var timestamp = moment(snapshot.val()[messageKey].timestamp).format('M/D/YY h:mm:s a');
         // show message to the user
         $('#messages').prepend('<p>' + timestamp + ' - ' + user + ': ' + message + '</p>');
     });
