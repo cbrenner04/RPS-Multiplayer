@@ -118,7 +118,6 @@ function setUpGame() {
                 // initialize first round
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
-            setUpGame();
         } else {
             if (game.playerOne === game.currentPlayer) {
                 // set player2 as the other player
@@ -175,7 +174,7 @@ function playGame() {
     };
 
     // get the most recent "round" of the current "game"
-    database.ref().child(game.gameKey).orderByChild('timestamp').limitToLast(1).on('value', function(snapshot) {
+    database.ref().child(game.gameKey).orderByChild('timestamp').limitToLast(1).once('value', function(snapshot) {
         round.roundKey = Object.keys(snapshot.val()).toString();
         round.playerOneChoice = snapshot.val()[round.roundKey].player1;
         round.playerTwoChoice = snapshot.val()[round.roundKey].player2;
@@ -205,15 +204,17 @@ function playGame() {
                 } else {
                     theyWin();
                 }
-                // database.ref().child(game.gameKey).update({
-                //     playerOneWins: game.currentPlayerWins + 1
-                // });
-                // database.ref().child(game.gameKey).push({
-                //     timestamp: firebase.database.ServerValue.TIMESTAMP
-                // });
+                console.log('pushing');
+                database.ref().child(game.gameKey).update({
+                    playerOneWins: game.currentPlayerWins + 1
+                });
+                round.roundKey = database.ref().child(game.gameKey).push({
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                }).key;
                 // return playGame();
                 // if player two wins
             } else {
+                console.log('pushing player 2');
                 // if current player is player two (the winner)
                 if (game.currentPlayer === game.playerTwo) {
                     youWin();
@@ -221,12 +222,12 @@ function playGame() {
                 } else {
                     theyWin();
                 }
-                // database.ref().child(game.gameKey).update({
-                //     playerTwoWins: game.currentPlayerWins + 1
-                // });
-                // database.ref().child(game.gameKey).push({
-                //     timestamp: firebase.database.ServerValue.TIMESTAMP
-                // });
+                database.ref().child(game.gameKey).update({
+                    playerTwoWins: game.currentPlayerWins + 1
+                });
+                database.ref().child(game.gameKey).push({
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                });
                 // return playGame();
             }
         }
@@ -298,15 +299,15 @@ function messaging() {
     });
 
     // listen for value in messaging portion of the game object on firebase -- limit to the last one
-    database.ref().child(game.gameKey).child('messaging').orderByChild('timestamp').limitToLast(1).once('value', function(snapshot) {
+    database.ref().child(game.gameKey).child('messaging').on('child_added', function(snapshot) {
         // get the key of this message
-        var messageKey = Object.keys(snapshot.val()).toString();
+        // var messageKey = Object.keys(snapshot.val()).toString();
         // get the user who wrote the message
-        var user = snapshot.val()[messageKey].user;
+        var user = snapshot.val().user;
         // get the message
-        var message = snapshot.val()[messageKey].message;
+        var message = snapshot.val().message;
         // get the timestamp of the message
-        var timestamp = moment(snapshot.val()[messageKey].timestamp).format('M/D/YY h:mm:s a');
+        var timestamp = moment(snapshot.val().timestamp).format('M/D/YY h:mm:s a');
         // show message to the user
         $('#messages').prepend('<p>' + timestamp + ' - ' + user + ': ' + message + '</p>');
     });
