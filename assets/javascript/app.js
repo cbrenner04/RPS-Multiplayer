@@ -126,118 +126,143 @@ $(document).on('ready', function() {
             $('#other-wins').text(game.otherPlayerWins);
             // display other players losses (which are the current players wins)
             $('#other-losses').text(game.currentPlayerWins);
-            // play the game
-            playGame();
-            // allow messaging
-            messaging();
+
+            // listen for request for new
+            $('#new-game').on('click', function() {
+                localStorage.removeItem('username');
+                location.reload();
+            });
+
+            // set directions
+            $('#current-choice').text('Please make a choice');
+
+            // round object
+            var round = {
+                roundKey: '',
+                playerOneChoice: '',
+                playerTwoChoice: ''
+            };
+
+            // get the most recent "round" of the current "game"
+            database.ref().child(game.gameKey).orderByChild('timestamp').limitToLast(1).once('value', function(snapshot) {
+                round.roundKey = Object.keys(snapshot.val()).toString();
+                round.playerOneChoice = snapshot.val()[round.roundKey].player1;
+                round.playerTwoChoice = snapshot.val()[round.roundKey].player2;
+
+                // if both players have made a choice on current round
+                if (round.playerOneChoice !== undefined && round.playerTwoChoice !== undefined) {
+                    // show players choices
+                    if (game.playerOne === game.currentPlayer) {
+                        $('#other-choice').text('They played ' + round.playerTwoChoice);
+                    } else if (game.playerTwo === game.currentPlayer) {
+                        $('#other-choice').text('They played ' + round.playerOneChoice);
+                    }
+
+                    // if both players choices are the same
+                    if (round.playerOneChoice === round.playerTwoChoice) {
+                        $('#current-result').text('You tied');
+                        $('#other-result').text('They tied');
+                        // if player one wins
+                    } else if ((round.playerOneChoice === 'Rock' && round.playerTwoChoice === 'Scissors') ||
+                        (round.playerOneChoice === 'Scissors' && round.playerTwoChoice === 'Paper') ||
+                        (round.playerOneChoice === 'Paper' && round.playerTwoChoice === 'Rock')) {
+
+                        // if current player is player one (the winner)
+                        if (game.currentPlayer === game.playerOne) {
+                            youWin();
+                            // if current player is player two (the loser)
+                        } else {
+                            theyWin();
+                        }
+                        // database.ref().child(game.gameKey).update({
+                        //     playerOneWins: game.currentPlayerWins + 1
+                        // });
+                        // database.ref().child(game.gameKey).push({
+                        //     timestamp: firebase.database.ServerValue.TIMESTAMP
+                        // });
+                    // if player two wins
+                    } else {
+                        // if current player is player two (the winner)
+                        if (game.currentPlayer === game.playerTwo) {
+                            youWin();
+                            // if current player is player one (the loser)
+                        } else {
+                            theyWin();
+                        }
+                        // database.ref().child(game.gameKey).update({
+                        //     playerTwoWins: game.currentPlayerWins + 1
+                        // });
+                        // database.ref().child(game.gameKey).push({
+                        //     timestamp: firebase.database.ServerValue.TIMESTAMP
+                        // });
+                    }
+                }
+
+                // listen for a user to make a choice
+                $('.choice').on('click', function() {
+                    // set the choice to choice
+                    var choice = $(this).text();
+                    // display what was chosen
+                    $('#current-choice').text('You chose ' + choice);
+                    // if the current player is player one and they have not yet chosen
+                    if (game.playerOne === game.currentPlayer && round.playerOneChoice === undefined) {
+                        // set the choice for player one in this round
+                        database.ref().child(game.gameKey).child(round.roundKey).update({
+                            player1: choice
+                        });
+                        // if the current player is player two and they have not yet chosen
+                    } else if (game.playerTwo === game.currentPlayer && round.playerTwoChoice === undefined) {
+                        // set the choice for player two in this round
+                        database.ref().child(game.gameKey).child(round.roundKey).update({
+                            player2: choice
+                        });
+                    }
+                    // don't refresh page
+                    return false;
+                });
+
+                // if current player is player one and if player two has not yet chosen
+                // or if current player is player two and if player one has not yet chosen
+                if ((game.playerOne === game.currentPlayer && round.playerTwoChoice === undefined) ||
+                   (game.playerTwo === game.currentPlayer && round.playerOneChoice === undefined)) {
+                    // display waiting message
+                    $('#other-choice').text('Waiting on other player to choose');
+                }
+            });
+
+            // on click of the messaging submit button
+            $('#send-message').on('click', function() {
+                // get the message input
+                var message = $('#message').val().trim();
+                // if the message input is not empty
+                if (message !== '') {
+                    // push the message to firebase
+                    database.ref().child(game.gameKey).child('messaging').push({
+                        message: message,
+                        user: game.currentPlayer,
+                        timestamp: firebase.database.ServerValue.TIMESTAMP
+                    });
+                    // clear input
+                    $('#message').val('');
+                }
+                // do not refresh page
+                return false;
+            });
+
+            // listen for value in messaging portion of the game object on firebase -- limit to the last one
+            database.ref().child(game.gameKey).child('messaging').on('child_added', function(snapshot) {
+                // get the user who wrote the message
+                var user = snapshot.val().user;
+                // get the message
+                var message = snapshot.val().message;
+                // get the timestamp of the message
+                var timestamp = moment(snapshot.val().timestamp).format('M/D/YY h:mm:s a');
+                // show message to the user
+                $('#messages').prepend('<p>' + timestamp + ' - ' + user + ': ' + message + '</p>');
+            });
         }
     });
 });
-
-function playGame() {
-    // listen for request for new
-    $('#new-game').on('click', function() {
-        localStorage.removeItem('username');
-        location.reload();
-    });
-
-    // set directions
-    $('#current-choice').text('Please make a choice');
-
-    // round object
-    var round = {
-        roundKey: '',
-        playerOneChoice: '',
-        playerTwoChoice: ''
-    };
-
-    // get the most recent "round" of the current "game"
-    database.ref().child(game.gameKey).orderByChild('timestamp').limitToLast(1).once('value', function(snapshot) {
-        round.roundKey = Object.keys(snapshot.val()).toString();
-        round.playerOneChoice = snapshot.val()[round.roundKey].player1;
-        round.playerTwoChoice = snapshot.val()[round.roundKey].player2;
-
-        // if both players have made a choice on current round
-        if (round.playerOneChoice !== undefined && round.playerTwoChoice !== undefined) {
-            // show players choices
-            if (game.playerOne === game.currentPlayer) {
-                $('#other-choice').text('They played ' + round.playerTwoChoice);
-            } else if (game.playerTwo === game.currentPlayer) {
-                $('#other-choice').text('They played ' + round.playerOneChoice);
-            }
-
-            // if both players choices are the same
-            if (round.playerOneChoice === round.playerTwoChoice) {
-                $('#current-result').text('You tied');
-                $('#other-result').text('They tied');
-                // if player one wins
-            } else if ((round.playerOneChoice === 'Rock' && round.playerTwoChoice === 'Scissors') ||
-                (round.playerOneChoice === 'Scissors' && round.playerTwoChoice === 'Paper') ||
-                (round.playerOneChoice === 'Paper' && round.playerTwoChoice === 'Rock')) {
-
-                // if current player is player one (the winner)
-                if (game.currentPlayer === game.playerOne) {
-                    youWin();
-                    // if current player is player two (the loser)
-                } else {
-                    theyWin();
-                }
-                // database.ref().child(game.gameKey).update({
-                //     playerOneWins: game.currentPlayerWins + 1
-                // });
-                // database.ref().child(game.gameKey).push({
-                //     timestamp: firebase.database.ServerValue.TIMESTAMP
-                // });
-            // if player two wins
-            } else {
-                // if current player is player two (the winner)
-                if (game.currentPlayer === game.playerTwo) {
-                    youWin();
-                    // if current player is player one (the loser)
-                } else {
-                    theyWin();
-                }
-                // database.ref().child(game.gameKey).update({
-                //     playerTwoWins: game.currentPlayerWins + 1
-                // });
-                // database.ref().child(game.gameKey).push({
-                //     timestamp: firebase.database.ServerValue.TIMESTAMP
-                // });
-            }
-        }
-
-        // listen for a user to make a choice
-        $('.choice').on('click', function() {
-            // set the choice to choice
-            var choice = $(this).text();
-            // display what was chosen
-            $('#current-choice').text('You chose ' + choice);
-            // if the current player is player one and they have not yet chosen
-            if (game.playerOne === game.currentPlayer && round.playerOneChoice === undefined) {
-                // set the choice for player one in this round
-                database.ref().child(game.gameKey).child(round.roundKey).update({
-                    player1: choice
-                });
-                // if the current player is player two and they have not yet chosen
-            } else if (game.playerTwo === game.currentPlayer && round.playerTwoChoice === undefined) {
-                // set the choice for player two in this round
-                database.ref().child(game.gameKey).child(round.roundKey).update({
-                    player2: choice
-                });
-            }
-            // don't refresh page
-            return false;
-        });
-
-        // if current player is player one and if player two has not yet chosen
-        // or if current player is player two and if player one has not yet chosen
-        if ((game.playerOne === game.currentPlayer && round.playerTwoChoice === undefined) ||
-           (game.playerTwo === game.currentPlayer && round.playerOneChoice === undefined)) {
-            // display waiting message
-            $('#other-choice').text('Waiting on other player to choose');
-        }
-    });
-}
 
 // display who won to the user, if the user won
 function youWin() {
@@ -249,38 +274,4 @@ function youWin() {
 function theyWin() {
     $('#current-result').text('You lose!');
     $('#other-result').text('They win!');
-}
-
-// controls messaging functionality
-function messaging() {
-    // on click of the messaging submit button
-    $('#send-message').on('click', function() {
-        // get the message input
-        var message = $('#message').val().trim();
-        // if the message input is not empty
-        if (message !== '') {
-            // push the message to firebase
-            database.ref().child(game.gameKey).child('messaging').push({
-                message: message,
-                user: game.currentPlayer,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-            // clear input
-            $('#message').val('');
-        }
-        // do not refresh page
-        return false;
-    });
-
-    // listen for value in messaging portion of the game object on firebase -- limit to the last one
-    database.ref().child(game.gameKey).child('messaging').on('child_added', function(snapshot) {
-        // get the user who wrote the message
-        var user = snapshot.val().user;
-        // get the message
-        var message = snapshot.val().message;
-        // get the timestamp of the message
-        var timestamp = moment(snapshot.val().timestamp).format('M/D/YY h:mm:s a');
-        // show message to the user
-        $('#messages').prepend('<p>' + timestamp + ' - ' + user + ': ' + message + '</p>');
-    });
 }
