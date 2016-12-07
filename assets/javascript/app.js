@@ -42,23 +42,13 @@ $(document).on('ready', function() {
                 game.currentPlayer = input;
                 // set the localStorage item -- so when the player returns this does not happen again
                 localStorage.setItem('username', game.currentPlayer);
-                // set welcome message
-                $('#welcome-message').text('Welcome ' + game.currentPlayer + '!');
-                setUpGameBoard();
-                setUpGame();
             }
-            return false;
         });
-    // if a player already exists on this device
-    } else {
-        // set the welcome message
-        $('#welcome-message').text('Welcome back ' + game.currentPlayer + '!');
-        setUpGameBoard();
-        setUpGame();
+        return;
     }
-});
 
-function setUpGameBoard() {
+    // set the welcome message
+    $('#welcome-message').text('Welcome ' + game.currentPlayer + '!');
     // set the username in the game board
     $('#current-player').text(game.currentPlayer);
     // show the welcome message
@@ -71,9 +61,7 @@ function setUpGameBoard() {
     $('#waiting-on-player').show();
     // hide player 2 card
     $('#other-player-panel').hide();
-}
 
-function setUpGame() {
     // get most recent game object in firebase
     database.ref().orderByChild('timestamp').limitToLast(1).on('value', function(snapshot) {
         game.gameKey = Object.keys(snapshot.val()).toString();
@@ -130,37 +118,27 @@ function setUpGame() {
             $('#waiting-on-player').hide();
             // show other player card
             $('#other-player-panel').show();
-            // display stats
-            displayWins();
+            // display current players wins or 0 if undefined
+            $('#current-wins').text(game.currentPlayerWins || 0);
+            // display current players losses or 0 if undefined (which are the other players wins)
+            $('#current-losses').text(game.otherPlayerWins || 0);
+            // display other players wins
+            $('#other-wins').text(game.otherPlayerWins);
+            // display other players losses (which are the current players wins)
+            $('#other-losses').text(game.currentPlayerWins);
             // play the game
             playGame();
             // allow messaging
             messaging();
         }
     });
-}
-
-// display wins and losses
-function displayWins() {
-    // display current players wins or 0 if undefined
-    $('#current-wins').text(game.currentPlayerWins || 0);
-    // display current players losses or 0 if undefined (which are the other players wins)
-    $('#current-losses').text(game.otherPlayerWins || 0);
-    // display other players wins
-    $('#other-wins').text(game.otherPlayerWins);
-    // display other players losses (which are the current players wins)
-    $('#other-losses').text(game.currentPlayerWins);
-}
-
-function createNewGame() {
-    localStorage.removeItem('username');
-    location.reload();
-}
+});
 
 function playGame() {
     // listen for request for new
     $('#new-game').on('click', function() {
-        createNewGame();
+        localStorage.removeItem('username');
+        location.reload();
     });
 
     // set directions
@@ -204,17 +182,14 @@ function playGame() {
                 } else {
                     theyWin();
                 }
-                console.log('pushing');
-                database.ref().child(game.gameKey).update({
-                    playerOneWins: game.currentPlayerWins + 1
-                });
-                round.roundKey = database.ref().child(game.gameKey).push({
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                }).key;
-                // return playGame();
-                // if player two wins
+                // database.ref().child(game.gameKey).update({
+                //     playerOneWins: game.currentPlayerWins + 1
+                // });
+                // database.ref().child(game.gameKey).push({
+                //     timestamp: firebase.database.ServerValue.TIMESTAMP
+                // });
+            // if player two wins
             } else {
-                console.log('pushing player 2');
                 // if current player is player two (the winner)
                 if (game.currentPlayer === game.playerTwo) {
                     youWin();
@@ -222,13 +197,12 @@ function playGame() {
                 } else {
                     theyWin();
                 }
-                database.ref().child(game.gameKey).update({
-                    playerTwoWins: game.currentPlayerWins + 1
-                });
-                database.ref().child(game.gameKey).push({
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-                // return playGame();
+                // database.ref().child(game.gameKey).update({
+                //     playerTwoWins: game.currentPlayerWins + 1
+                // });
+                // database.ref().child(game.gameKey).push({
+                //     timestamp: firebase.database.ServerValue.TIMESTAMP
+                // });
             }
         }
 
@@ -300,8 +274,6 @@ function messaging() {
 
     // listen for value in messaging portion of the game object on firebase -- limit to the last one
     database.ref().child(game.gameKey).child('messaging').on('child_added', function(snapshot) {
-        // get the key of this message
-        // var messageKey = Object.keys(snapshot.val()).toString();
         // get the user who wrote the message
         var user = snapshot.val().user;
         // get the message
