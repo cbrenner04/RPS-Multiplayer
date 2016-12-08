@@ -183,12 +183,15 @@ $(document).on('ready', function() {
 
                 // if both players choices are the same
                 if (game.playerOneChoice === game.playerTwoChoice) {
-                    $('#current-result').text('You tied');
-                    $('#other-result').text('They tied');
-                    database.ref('game').update({
-                        player1choice: '',
-                        player2choice: ''
-                    });
+                    setTimeout(function() {
+                        $('#current-result').text('You tied');
+                        $('#other-result').text('They tied');
+                        database.ref('game').update({
+                            player1choice: '',
+                            player2choice: ''
+                        });
+                        reset();
+                    }, 3000);
                     // if player one wins
                 } else if ((game.playerOneChoice === 'Rock' && game.playerTwoChoice === 'Scissors') ||
                     (game.playerOneChoice === 'Scissors' && game.playerTwoChoice === 'Paper') ||
