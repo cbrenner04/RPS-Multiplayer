@@ -267,7 +267,7 @@ $(document).on('ready', function() {
                 // if the message input is not empty
                 if (message !== '') {
                     // push the message to firebase
-                    database.ref('game').child('messaging').push({
+                    database.ref('messaging').push({
                         message: message,
                         user: game.currentPlayer,
                         timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -283,7 +283,7 @@ $(document).on('ready', function() {
             $('#messages').empty();
 
             // listen for value in messaging portion of the game object on firebase -- limit to the last one
-            database.ref('game').child('messaging').on('child_added', function(childSnapshot, prevChildSnapshot) {
+            database.ref('messaging').on('child_added', function(childSnapshot, prevChildSnapshot) {
                 // get the user who wrote the message
                 var user = childSnapshot.val().user;
                 // get the message
