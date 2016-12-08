@@ -11,10 +11,47 @@ firebase.initializeApp(config);
 // reference the database
 var database = firebase.database();
 
+// ------------- begin Mark's presence code --------------------------------- //
+
+// connectionsRef references a specific location in our database.
+// All of our connections will be stored in this directory.
+var connectionsRef = database.ref('/connections');
+
+// '.info/connected' is a special location provided by Firebase that is updated every time
+// the client's connection state changes.
+// '.info/connected' is a boolean value, true if the client is connected and false if they are not.
+var connectedRef = database.ref('.info/connected');
+
+// When the client's connection state changes...
+connectedRef.on("value", function(snapshot) {
+
+    // If they are connected..
+    if (snapshot.val()) {
+
+        // Add user to the connections list.
+        var con = connectionsRef.push(true);
+
+        // Remove user from the connection list when they disconnect.
+        con.onDisconnect().remove();
+    }
+});
+
+// ADDED - initialize global variable for the list of watchers
+var watchersList;
+
+// When first loaded or when the connections list changes...
+connectionsRef.on("value", function(snapshot) {
+    // REMOVED - setting watchers count in the HTML
+
+    // ADDED - set list of watchers
+    watchersList = Object.keys(snapshot.val());
+});
+
+// ---------------- end Mark's presence code -------------------------------- //
+
 // set game object -- to be populated laters
 var game = {
     currentPlayer: '',
-    gameKey: '',
     playerOne: '',
     playerTwo: '',
     currentPlayerWins: 0,
@@ -66,51 +103,49 @@ $(document).on('ready', function() {
     $('#other-player-panel').hide();
 
     // get most recent game object in firebase
-    database.ref().orderByChild('timestamp').limitToLast(1).on('value', function(snapshot) {
-        game.gameKey = Object.keys(snapshot.val()).toString();
-        game.playerOne = snapshot.val()[game.gameKey].player1;
-        game.playerTwo = snapshot.val()[game.gameKey].player2;
-        game.playerOneChoice = snapshot.val()[game.gameKey].player1choice;
-        game.playerTwoChoice = snapshot.val()[game.gameKey].player2choice;
+    database.ref('game').on('value', function(snapshot) {
+        game.playerOne = snapshot.val().player1;
+        game.playerTwo = snapshot.val().player2;
+        game.playerOneChoice = snapshot.val().player1choice;
+        game.playerTwoChoice = snapshot.val().player2choice;
 
         // if current player is player one
         if (game.currentPlayer === game.playerOne) {
             // set wins for current player
-            game.currentPlayerWins = snapshot.val()[game.gameKey].playerOneWins;
+            game.currentPlayerWins = snapshot.val().playerOneWins;
             // set wins for other player
-            game.otherPlayerWins = snapshot.val()[game.gameKey].playerTwoWins;
+            game.otherPlayerWins = snapshot.val().playerTwoWins;
         // if current player is player two
         } else if (game.currentPlayer === game.playerTwo) {
             // set wins for current player
-            game.currentPlayerWins = snapshot.val()[game.gameKey].playerTwoWins;
+            game.currentPlayerWins = snapshot.val().playerTwoWins;
             // set wins for other player
-            game.otherPlayerWins = snapshot.val()[game.gameKey].playerOneWins;
+            game.otherPlayerWins = snapshot.val().playerOneWins;
         }
 
         // check for current "open" game
         // if there is an open game
-        if (game.playerTwo === undefined) {
+        if (watchersList.length % 2 === 0 && game.playerTwo === undefined) {
             // check that current player is not already attached to this game
             if (game.playerOne !== game.currentPlayer) {
                 // the current player is player 2
-                database.ref().child(game.gameKey).update({
+                database.ref('game').update({
                     player2: game.currentPlayer,
                     playerTwoWins: 0,
                     player2choice: ''
                 });
             }
         // check that current player is not already attached to latest game
-        } else if (game.playerOne !== game.currentPlayer && game.playerTwo !== game.currentPlayer) {
+        } else if (game.playerOne === undefined) {
             // create new game
             // the current player is player 1
-            database.ref().push({
-                timestamp: firebase.database.ServerValue.TIMESTAMP,
+            database.ref('game').update({
                 player1: game.currentPlayer,
                 playerOneWins: 0,
                 messaging: '',
                 player1choice: ''
             });
-        } else {
+        } else if (watchersList.length % 2 === 0 && game.playerOne !== undefined && game.playerTwo !== undefined) {
             if (game.playerOne === game.currentPlayer) {
                 // set player2 as the other player
                 $('#other-player').text(game.playerTwo);
@@ -150,7 +185,7 @@ $(document).on('ready', function() {
                 if (game.playerOneChoice === game.playerTwoChoice) {
                     $('#current-result').text('You tied');
                     $('#other-result').text('They tied');
-                    database.ref().child(game.gameKey).update({
+                    database.ref('game').update({
                         player1choice: '',
                         player2choice: ''
                     });
@@ -162,39 +197,41 @@ $(document).on('ready', function() {
                     // if current player is player one (the winner)
                     if (game.currentPlayer === game.playerOne) {
                         youWin();
-                        // if current player is player two (the loser)
+                    // if current player is player two (the loser)
                     } else {
                         theyWin();
                     }
 
                     setTimeout(function() {
-                        database.ref().child(game.gameKey).update({
-                            playerOneWins: game.currentPlayerWins + 1,
+                        var wins = snapshot.val().playerOneWins;
+                        database.ref('game').update({
+                            playerOneWins: wins + 1,
                             player1choice: '',
                             player2choice: ''
                         });
 
                         reset();
-                    }, 5000);
+                    }, 3000);
                 // if player two wins
                 } else {
                     // if current player is player two (the winner)
                     if (game.currentPlayer === game.playerTwo) {
                         youWin();
-                        // if current player is player one (the loser)
+                    // if current player is player one (the loser)
                     } else {
                         theyWin();
                     }
 
                     setTimeout(function() {
-                        database.ref().child(game.gameKey).update({
-                            playerTwoWins: game.currentPlayerWins + 1,
+                        var wins = snapshot.val().playerOneWins;
+                        database.ref('game').update({
+                            playerTwoWins: wins + 1,
                             player1choice: '',
                             player2choice: ''
                         });
 
                         reset();
-                    }, 5000);
+                    }, 3000);
                 }
             }
 
@@ -207,14 +244,14 @@ $(document).on('ready', function() {
                 // if the current player is player one and they have not yet chosen
                 if (game.playerOne === game.currentPlayer && game.playerOneChoice === '') {
                     // set the choice for player one in this round
-                    database.ref().child(game.gameKey).update({
+                    database.ref('game').update({
                         player1choice: choice
                     });
                     $('.choice').hide();
                 // if the current player is player two and they have not yet chosen
                 } else if (game.playerTwo === game.currentPlayer && game.playerTwoChoice === '') {
                     // set the choice for player two in this round
-                    database.ref().child(game.gameKey).update({
+                    database.ref('game').update({
                         player2choice: choice
                     });
                     $('.choice').hide();
@@ -230,7 +267,7 @@ $(document).on('ready', function() {
                 // if the message input is not empty
                 if (message !== '') {
                     // push the message to firebase
-                    database.ref().child(game.gameKey).child('messaging').push({
+                    database.ref('game').child('messaging').push({
                         message: message,
                         user: game.currentPlayer,
                         timestamp: firebase.database.ServerValue.TIMESTAMP
@@ -242,14 +279,17 @@ $(document).on('ready', function() {
                 return false;
             });
 
+            // hack to keep messages from showing duplicates
+            $('#messages').empty();
+
             // listen for value in messaging portion of the game object on firebase -- limit to the last one
-            database.ref().child(game.gameKey).child('messaging').on('child_added', function(snapshot) {
+            database.ref('game').child('messaging').on('child_added', function(childSnapshot, prevChildSnapshot) {
                 // get the user who wrote the message
-                var user = snapshot.val().user;
+                var user = childSnapshot.val().user;
                 // get the message
-                var message = snapshot.val().message;
+                var message = childSnapshot.val().message;
                 // get the timestamp of the message
-                var timestamp = moment(snapshot.val().timestamp).format('M/D/YY h:mm:s a');
+                var timestamp = moment(childSnapshot.val().timestamp).format('M/D/YY h:mm:s a');
                 // show message to the user
                 $('#messages').prepend('<p>' + timestamp + ' - ' + user + ': ' + message + '</p>');
             });
