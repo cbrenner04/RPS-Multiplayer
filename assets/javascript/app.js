@@ -145,7 +145,7 @@ $(document).on('ready', function() {
                 messaging: '',
                 player1choice: ''
             });
-        } else if (watchersList.length % 2 === 0 && game.playerOne !== undefined && game.playerTwo !== undefined) {
+        } else if (watchersList.length >= 2 && (game.playerOne === game.currentPlayer || game.playerTwo === game.currentPlayer)) {
             if (game.playerOne === game.currentPlayer) {
                 // set player2 as the other player
                 $('#other-player').text(game.playerTwo);
