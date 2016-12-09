@@ -170,9 +170,20 @@ $(document).on('ready', function() {
             // display other players losses (which are the current players wins)
             $('#other-losses').text(game.currentPlayerWins);
 
-            // listen for request for new
+            // listen for request for new game
             $('#new-game').on('click', function() {
-                localStorage.removeItem('username');
+                // reset game object
+                database.ref('game').update({
+                    player1: game.currentPlayer,
+                    player1key: localStorage.getItem('userKey'),
+                    playerOneWins: 0,
+                    player1choice: '',
+                    playerTwoWins: 0
+                });
+                database.ref('game/player2').remove();
+                database.ref('game/playerTwoChoice').remove();
+                // remove messaging object
+                database.ref('messaging').remove();
                 location.reload();
             });
 
