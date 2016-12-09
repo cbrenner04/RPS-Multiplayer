@@ -31,6 +31,9 @@ connectedRef.on("value", function(snapshot) {
         // Add user to the connections list.
         var con = connectionsRef.push(true);
 
+        // ADDED - set users key in localStorage for reference
+        localStorage.setItem('userKey', con.key);
+
         // Remove user from the connection list when they disconnect.
         con.onDisconnect().remove();
     }
@@ -131,6 +134,7 @@ $(document).on('ready', function() {
                 // the current player is player 2
                 database.ref('game').update({
                     player2: game.currentPlayer,
+                    player2key: localStorage.getItem('userKey'),
                     playerTwoWins: 0,
                     player2choice: ''
                 });
@@ -141,8 +145,8 @@ $(document).on('ready', function() {
             // the current player is player 1
             database.ref('game').update({
                 player1: game.currentPlayer,
+                player1key: localStorage.getItem('userKey'),
                 playerOneWins: 0,
-                messaging: '',
                 player1choice: ''
             });
         } else if (watchersList.length >= 2 && (game.playerOne === game.currentPlayer || game.playerTwo === game.currentPlayer)) {
@@ -183,16 +187,17 @@ $(document).on('ready', function() {
 
                 // if both players choices are the same
                 if (game.playerOneChoice === game.playerTwoChoice) {
+                    $('#current-result').text('You tied');
+                    $('#other-result').text('They tied');
+
                     setTimeout(function() {
-                        $('#current-result').text('You tied');
-                        $('#other-result').text('They tied');
                         database.ref('game').update({
                             player1choice: '',
                             player2choice: ''
                         });
                         reset();
                     }, 3000);
-                    // if player one wins
+                // if player one wins
                 } else if ((game.playerOneChoice === 'Rock' && game.playerTwoChoice === 'Scissors') ||
                     (game.playerOneChoice === 'Scissors' && game.playerTwoChoice === 'Paper') ||
                     (game.playerOneChoice === 'Paper' && game.playerTwoChoice === 'Rock')) {
@@ -220,7 +225,7 @@ $(document).on('ready', function() {
                     // if current player is player two (the winner)
                     if (game.currentPlayer === game.playerTwo) {
                         youWin();
-                    // if current player is player one (the loser)
+                        // if current player is player one (the loser)
                     } else {
                         theyWin();
                     }
